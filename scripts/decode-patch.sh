@@ -30,12 +30,12 @@ cp /work/patches/h3-b.smali /work/build/kika-at3/smali/h3/b.smali
 cp /work/patches/h3-c.smali /work/build/kika-at3/smali/h3/c.smali
 
 # 2. manifest: rename package + authorities, drop coreApp
-sed "s/package=\"com.iqqijni.bbkeyboard\"/package=\"com.iqqijni.bbkeyboardjc\"/" -i /work/build/kika-at3/AndroidManifest.xml
-sed "s/com.iqqijni.bbkeyboard.provider/com.iqqijni.bbkeyboardjc.provider/g; s/com.iqqijni.bbkeyboard.permission/com.iqqijni.bbkeyboardjc.permission/g" -i /work/build/kika-at3/AndroidManifest.xml
+sed "s/package=\"com.iqqijni.bbkeyboard\"/package=\"com.iqqijni.bbkeyboardhe\"/" -i /work/build/kika-at3/AndroidManifest.xml
+sed "s/com.iqqijni.bbkeyboard.provider/com.iqqijni.bbkeyboardhe.provider/g; s/com.iqqijni.bbkeyboard.permission/com.iqqijni.bbkeyboardhe.permission/g" -i /work/build/kika-at3/AndroidManifest.xml
 sed "/android:coreApp=\"true\"/d" -i /work/build/kika-at3/AndroidManifest.xml
 
 # 3. distinct app name
-sed "s#<string name=\"app_name\">[^<]*</string>#<string name="app_name">Kika ЙЦУКЕН</string>#" -i /work/build/kika-at3/res/values/strings.xml
+sed "s#<string name=\"app_name\">[^<]*</string>#<string name=\"app_name\">Kika עברית</string>#" -i /work/build/kika-at3/res/values/strings.xml
 
 # 4. signing material (only if not present yet)
 cd /work/build/kika-at3

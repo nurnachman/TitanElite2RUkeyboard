@@ -1,4 +1,7 @@
-# Stock RU layout on Titan 2 Elite (extracted)
+# Historical Russian-layout findings on Titan 2 Elite
+
+This note documents the original Russian-layout investigation. The active
+Hebrew layout for this branch is [titan_hebrew.json](titan_hebrew.json).
 
 Extracted by injecting every Android keycode via `adb shell input keyevent`
 with the stock IME (`com.iqqijni.bbkeyboard`) in Russian mode, then reading
@@ -22,7 +25,7 @@ Q=Й  W=У  E=К  R=Е  T=Н  Y=Г  U=Ш  I=З  O=Х  P=Ю
 **Ц Щ Ъ Ы Э Ч Ё** — no key, chord, or gesture produces them. They are simply
 absent from the physical pipeline (only the on-screen keyboard has them).
 
-## Our replacement map (standard ЙЦУКЕН)
+## Previous Russian replacement map (standard ЙЦУКЕН)
 
 ```
 Q=Й  W=Ц  E=У  R=К  T=Е  Y=Н  U=Г  I=Ш  O=Щ  P=З
@@ -31,7 +34,7 @@ Q=Й  W=Ц  E=У  R=К  T=Е  Y=Н  U=Г  I=Ш  O=Щ  P=З
 ```
 
 Tail letters (the 7 that do not fit) via multitap / long-press on the row-end
-keys — see README. Specification: `titan_jcuken.json`.
+keys — see the historical specification `titan_jcuken.json`.
 
 ## Hardware / firmware notes
 

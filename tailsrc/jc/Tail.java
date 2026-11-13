@@ -1,17 +1,18 @@
 package jc;
 public class Tail {
     static final String TAG = "JC-TAIL";
-    static int lastKey; static long lastAt; static int stage;
-    static boolean held;
-    static Object conn; static long lastSig = Long.MIN_VALUE;
+    static boolean hebrewMode;
     static boolean inited;
+    static Object conn;
+    static long lastSig = Long.MIN_VALUE;
+    static final String PREFS = "hebrew_layout";
+    static final String PREF_HEBREW = "hebrew_mode";
+    static final int META_ALT_ON = 0x02;
+    static final int NON_TEXT_MODIFIERS = 0x02 | 0x04 | 0x08 | 0x1000 | 0x10000;
+    static final int OTHER_SWITCH_MODIFIERS = 0x01 | 0x04 | 0x08 | 0x1000 | 0x10000;
     static {
         log("clinit");
     }
-    final static int[][] CYC = {
-        {0x437,0x445,0x44A},{0x434,0x436,0x44D},{0x44C,0x431,0x44E},{0x435,0x451}
-    };
-    final static int[] KEYS = {44,40,41,48};   // P L M T
 
     // entry from HDKeyboardService.onKeyDown hook
     public static boolean onKey(Object src, Object ev) {
@@ -21,7 +22,6 @@ public class Tail {
     public static boolean p(Object src, Object ev) { return onKey(src, ev); }
 
     static boolean onKey0(Object src, Object ev) {
-        log("enter onKey0 ev=" + ev);
         if (ev == null) return false;
         Long et = (Long) call(ev, "getEventTime");
         long evt = et == null ? -1L : et.longValue();
@@ -33,121 +33,126 @@ public class Tail {
         long sig = evt ^ (keyCode * 131L) ^ (action * 31L) ^ (repeat * 7L);
         if (sig == lastSig) return false;   // same logical event via cloned dispatch
         lastSig = sig;
-        if (!inited) { inited = true; setLang(src, "ru"); }   // first key after install -> Russian
-        if (keyCode == 62) {   // SPACE with Alt held = RU<->EN toggle
-            Integer ms = (Integer) call(ev, "getMetaState");
-            if (ms != null && (ms.intValue() & 0x02) != 0) {
-                setLang(src, curLang(src).startsWith("ru") ? "en" : "ru");
+        if (!inited) {
+            inited = true;
+            hebrewMode = readHebrewMode(src);
+            setLang(src, "en");
+            showLanguage(src);
+        }
+
+        Integer ms = (Integer) call(ev, "getMetaState");
+        int meta = ms == null ? 0 : ms.intValue();
+        if (keyCode == 62 && action == 0 && repeat == 0
+                && (meta & META_ALT_ON) != 0 && (meta & OTHER_SWITCH_MODIFIERS) == 0) {
+            hebrewMode = !hebrewMode;
+            writeHebrewMode(src, hebrewMode);
+            setLang(src, "en");
+            showLanguage(src);
+            return true;
+        }
+
+        if (hebrewMode && (meta & NON_TEXT_MODIFIERS) == 0) {
+            char output = hebrewCharacter(keyCode, (meta & 0x1) != 0);
+            if (output != 0) {
+                if (action == 0 && repeat == 0) insertHebrew(src, output);
                 return true;
             }
         }
-        long now = System.currentTimeMillis();
-        int idx = -1;
-        for (int i = 0; i < KEYS.length; i++) if (KEYS[i] == keyCode) idx = i;
-        if (action != 0) { log("UP/other a=" + action + " k=" + keyCode); return false; }
-        if (repeat > 0) {                       // auto-repeat == long press
-            if (idx < 0) return false;          // other keys: stock behaviour
-            if (!held) {
-                held = true;
-                log("LP r=" + repeat + " idx=" + idx + " conn=" + (conn(src) != null));
-                replaceBase(idx, CYC[idx].length - 1);
-            }
-            return true;                        // swallow repeats of tail keys
-        }
-        held = false;
-        if (idx < 0) { lastKey = 0; return false; }
-        log("tap k=" + keyCode + " dt=" + (now - lastAt));
-        if (keyCode == lastKey && (now - lastAt) < 700L) {
-            if (conn(src) != null && advance(idx)) return true;
-        }
-        lastKey = keyCode; lastAt = now; stage = 0;
         return false;
     }
 
-    // entry from HDKeyboardService.onKeyLongPress hook (FLAG_LONG_PRESS path)
     public static boolean longPress(Object service, int keyCode) {
-        int idx = -1;
-        for (int i = 0; i < KEYS.length; i++) if (KEYS[i] == keyCode) idx = i;
-        log("onKeyLongPress k=" + keyCode + " idx=" + idx);
-        if (idx < 0) return false;
-        if (conn(service) == null) return false;
-        replaceBase(idx, CYC[idx].length - 1);
-        lastKey = 0;
+        return false;
+    }
+
+    static char hebrewCharacter(int keyCode, boolean shifted) {
+        switch (keyCode) {
+            case 29: return '\u05E9'; // A
+            case 30: return '\u05E0'; // B
+            case 31: return '\u05D1'; // C
+            case 32: return '\u05D2'; // D
+            case 33: return '\u05E7'; // E
+            case 34: return '\u05DB'; // F
+            case 35: return '\u05E2'; // G
+            case 36: return '\u05D9'; // H
+            case 37: return '\u05DF'; // I
+            case 38: return '\u05D7'; // J
+            case 39: return '\u05DC'; // K
+            case 40: return '\u05DA'; // L
+            case 41: return '\u05E6'; // M
+            case 42: return '\u05DE'; // N
+            case 43: return '\u05DD'; // O
+            case 44: return '\u05E4'; // P
+            case 45: return shifted ? '?' : '/'; // Q
+            case 46: return '\u05E8'; // R
+            case 47: return '\u05D3'; // S
+            case 48: return '\u05D0'; // T
+            case 49: return '\u05D5'; // U
+            case 50: return '\u05D4'; // V
+            case 51: return shifted ? '\u05F4' : '\u05F3'; // W
+            case 52: return '\u05E1'; // X
+            case 53: return '\u05D8'; // Y
+            case 54: return '\u05D6'; // Z
+            case 55: return shifted ? '<' : '\u05EA'; // comma
+            case 56: return shifted ? '>' : '\u05E5'; // period
+            case 71: return shifted ? '}' : ']'; // left bracket
+            case 72: return shifted ? '{' : '['; // right bracket
+            case 74: return shifted ? ':' : '\u05E3'; // semicolon
+            case 75: return shifted ? '"' : ','; // apostrophe
+            case 76: return shifted ? '?' : '.'; // slash
+            default: return 0;
+        }
+    }
+
+    static void insertHebrew(Object service, char character) {
+        Object connection = conn(service);
+        if (connection == null) {
+            log("cannot insert U+" + Integer.toHexString(character) + ": no InputConnection");
+            return;
+        }
+        callA(connection, "finishComposingText", new Class[0], new Object[0]);
+        Object result = callA(connection, "commitText",
+            new Class[]{CharSequence.class, int.class},
+            new Object[]{String.valueOf(character), Integer.valueOf(1)});
+        if (!(result instanceof Boolean) || !((Boolean) result).booleanValue()) {
+            log("commitText failed for U+" + Integer.toHexString(character));
+        }
+    }
+
+    static boolean readHebrewMode(Object service) {
+        Object preferences = callA(service, "getSharedPreferences",
+            new Class[]{String.class, int.class}, new Object[]{PREFS, Integer.valueOf(0)});
+        Object value = preferences == null ? null : callA(preferences, "getBoolean",
+            new Class[]{String.class, boolean.class}, new Object[]{PREF_HEBREW, Boolean.TRUE});
+        if (value instanceof Boolean) return ((Boolean) value).booleanValue();
+        log("could not read saved language; defaulting to Hebrew");
         return true;
     }
 
-    // replace char before cursor (any cycle letter) with CYC[idx][st], keeping case
-    static void replaceBase(int idx, int st) {
-        String b = waitCycle(idx, 8);
-        if (b == null) { log("lp miss"); return; }
-        char ch = b.charAt(0);
-        boolean up = Character.isUpperCase(ch);
-        callA(conn, "finishComposingText", new Class[0], new Object[0]);
-        callA(conn, "deleteSurroundingText", new Class[]{int.class,int.class}, new Object[]{Integer.valueOf(1), Integer.valueOf(0)});
-        int c = CYC[idx][st];
-        if (up) c = Character.toUpperCase(c);
-        callA(conn, "commitText", new Class[]{CharSequence.class,int.class}, new Object[]{String.valueOf((char) c), Integer.valueOf(1)});
-        log("commit U+" + Integer.toHexString(c));
-    }
-
-    // multitap: replace current cycle letter (stage) with next in cycle
-    static boolean advance(int idx) {
-        char want = (char) CYC[idx][stage];
-        String b = null;
-        for (int t = 0; t < 8; t++) {   // fresh commit may lag the key event: wait for it
-            Object before = callA(conn, "getTextBeforeCursor", new Class[]{int.class,int.class}, new Object[]{Integer.valueOf(1), Integer.valueOf(0)});
-            String s = before == null ? "" : before.toString();
-            if (s.length() > 0 && Character.toLowerCase(s.charAt(0)) == want) { b = s; break; }
-            try { Thread.sleep(16); } catch (Throwable e) { break; }
+    static void writeHebrewMode(Object service, boolean enabled) {
+        Object preferences = callA(service, "getSharedPreferences",
+            new Class[]{String.class, int.class}, new Object[]{PREFS, Integer.valueOf(0)});
+        Object editor = preferences == null ? null : call(preferences, "edit");
+        Object result = editor == null ? null : callA(editor, "putBoolean",
+            new Class[]{String.class, boolean.class}, new Object[]{PREF_HEBREW, Boolean.valueOf(enabled)});
+        if (result == null) {
+            log("could not save language preference");
+            return;
         }
-        if (b == null) { log("adv miss"); return false; }
-        char ch = b.charAt(0);
-        boolean up = Character.isUpperCase(ch);
-        callA(conn, "finishComposingText", new Class[0], new Object[0]);
-        callA(conn, "deleteSurroundingText", new Class[]{int.class,int.class}, new Object[]{Integer.valueOf(1), Integer.valueOf(0)});
-        stage = (stage + 1) % CYC[idx].length;
-        int c = CYC[idx][stage];
-        if (up) c = Character.toUpperCase(c);
-        callA(conn, "commitText", new Class[]{CharSequence.class,int.class}, new Object[]{String.valueOf((char) c), Integer.valueOf(1)});
-        lastAt = System.currentTimeMillis();
-        log("adv commit U+" + Integer.toHexString(c));
-        return true;
+        call(result, "apply");
     }
 
-    // wait until char before cursor is one of the cycle letters
-    static String waitCycle(int idx, int tries) {
-        for (int t = 0; t < tries; t++) {
-            Object before = callA(conn, "getTextBeforeCursor", new Class[]{int.class,int.class}, new Object[]{Integer.valueOf(1), Integer.valueOf(0)});
-            String s = before == null ? "" : before.toString();
-            if (s.length() > 0) {
-                char lo = Character.toLowerCase(s.charAt(0));
-                for (int i = 0; i < CYC[idx].length; i++) if (lo == CYC[idx][i]) return s;
-            }
-            try { Thread.sleep(16); } catch (Throwable e) { return null; }
-        }
-        return null;
-    }
-
-    // poll text before cursor: commit may lag the key event by a few ms
-    static String readBefore(int tries) {
-        for (int i = 0; i < tries; i++) {
-            Object before = callA(conn, "getTextBeforeCursor", new Class[]{int.class,int.class}, new Object[]{Integer.valueOf(1), Integer.valueOf(0)});
-            String b = before == null ? "" : before.toString();
-            if (b.length() > 0) return b;
-            try { Thread.sleep(14); } catch (Throwable t) { return ""; }
-        }
-        return "";
-    }
-
-    static String curLang(Object service) {
+    static void showLanguage(Object service) {
         try {
-            Object m3b = getField(service, "h");
-            Object prov = m3b == null ? null : getField(m3b, "e");
-            Object cur = prov == null ? null : call(prov, "i");
-            Object loc = cur == null ? null : call(cur, "c");
-            Object tag = loc == null ? null : call(loc, "toLanguageTag");
-            return tag == null ? "" : tag.toString();
-        } catch (Throwable t) { return ""; }
+            Class<?> context = Class.forName("android.content.Context");
+            Class<?> toast = Class.forName("android.widget.Toast");
+            Object message = hebrewMode ? "\u05E2\u05D1\u05E8\u05D9\u05EA" : "English";
+            Object notification = toast.getMethod("makeText", context, CharSequence.class, int.class)
+                .invoke(null, service, message, Integer.valueOf(0));
+            call(notification, "show");
+        } catch (Throwable t) {
+            log("language indicator failed: " + t);
+        }
     }
 
     // switch Kika language via its own pipeline: enable (y) -> select (q) -> apply (o)
@@ -164,7 +169,7 @@ public class Tail {
             if (loc == null) { log("setLang noloc"); return; }
             callA(prov, "y", new Class[]{java.util.Locale.class, boolean.class}, new Object[]{loc, Boolean.TRUE});
             callA(prov, "q", new Class[]{bCls, boolean.class}, new Object[]{lang, Boolean.TRUE});
-            callA(m3b, "U", new Class[0], new Object[0]);   // rebuild consumer maps incl. ru
+            callA(m3b, "U", new Class[0], new Object[0]);   // rebuild consumer maps
             try {
                 Object h3c = Class.forName("h3.c").getMethod("h").invoke(null);   // latin-family consumer: set its language
                 callA(h3c, "t", new Class[]{bCls}, new Object[]{lang});

@@ -31,7 +31,7 @@ overlay shipped in the firmware:
 ```
 
 Exactly one entry — the stock IME package. Our clone
-(`com.iqqijni.bbkeyboardjc`) fails `containsKey` → gestures are dropped
+(`com.iqqijni.bbkeyboardhe`) fails `containsKey` → gestures are dropped
 before they ever reach the IME.
 
 ## Why there is no fix without root
@@ -46,7 +46,7 @@ before they ever reach the IME.
   be an "update" of the preinstalled system app and fails the signature check.
 
 With root (Magisk etc.) one command would fix it, e.g. fabricate the array to
-`["com.iqqijni.bbkeyboard:10","com.iqqijni.bbkeyboardjc:10"]` or edit the RRO.
+`["com.iqqijni.bbkeyboard:10","com.iqqijni.bbkeyboardhe:10"]` or edit the RRO.
 
 ## What still works without flick
 

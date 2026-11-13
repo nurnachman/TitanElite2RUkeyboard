@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Step 2: compile jc/Tail, rebuild the patched tree into a signed clone APK.
 # Input:  build/kika-at3 (from scripts/decode-patch.sh), tailsrc/jc/Tail.java
-# Output: dist/kika-jc.apk
+# Output: dist/kika-he.apk
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$PWD
@@ -33,7 +33,7 @@ cd /work/tailsrc && zip -q -j /tmp/j.apk classes2.dex
 cd /work/build/kika-at3
 /opt/bt/apksigner sign --ks titan.keystore --ks-key-alias titan \
   --ks-pass "pass:$(cat key.pass)" --key-pass "pass:$(cat key.pass)" \
-  --out /work/dist/kika-jc.apk /tmp/j-aligned.apk || { echo SIGN-FAIL; exit 1; }
+  --out /work/dist/kika-he.apk /tmp/j-aligned.apk || { echo SIGN-FAIL; exit 1; }
 echo BUILD-OK'
 
-ls -la dist/kika-jc.apk
+ls -la dist/kika-he.apk
